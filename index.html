@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Concept</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/2.9.2/react-bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/driver.js/0.9.8/driver.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/driver.js/0.9.8/driver.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #555;
+        }
+
+        #menu-container {
+            position: fixed;
+            top: 0;
+            right: -260px;
+            width: 250px;
+            height: 100vh;
+            background: #333;
+            color: white;
+            transition: right 0.3s;
+            padding: 10px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .toggle-button {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 5px 0 0 5px;
+            cursor: pointer;
+            transition: right 0.3s;
+            z-index: 100;
+        }
+
+        .accordion-header {
+            background: #444;
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #555;
+        }
+
+        .accordion-content {
+            display: none;
+            padding: 10px;
+            background: #555;
+        }
+
+        .icon {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px;
+            background: white;
+            color: black;
+            border-radius: 5px;
+            cursor: grab;
+        }
+
+        .icon:active {
+            cursor: grabbing !important;
+        }
+
+        #drop-area {
+            position: fixed;
+            top: 16%;
+            left: 16%;
+            width: 70%;
+            height: 70vh;
+            background: rgba(0, 0, 255, 0.2);
+            border: 2px dashed #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 90vw;
+            max-height: 80vh;
+        }
+
+        #left-bar {
+            position: fixed;
+            top: 40%;
+            left: 1%;
+            background: #1762b3;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #menu-container {
+            overflow-y: scroll;
+        }
+
+        #menu-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        #menu-container::-webkit-scrollbar-track {
+            background: #333;
+            border-radius: 10px;
+        }
+
+        #menu-container::-webkit-scrollbar-thumb {
+            background-color: #007bff;
+            border-radius: 10px;
+        }
+
+        #menu-container::-webkit-scrollbar-thumb:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        const { useState, useEffect } = React;
+
+        // DISCLAIMER: need to check lenght items in localStorage with items we show to override them, if we add items and they are stored, dont gonna show it
+
+        function Menu() {
+            const [isOpen, setIsOpen] = useState(() => {
+                const savedState = localStorage.getItem('menuOpen');
+                return savedState ? JSON.parse(savedState) : false; // default closed
+            });
+
+            const iconsLeftBar = ["🖥", "💾", "📡"];
+
+            const initialItems = [
+                { id: 1, title: "Volumes", icons: ["💾", "💾", "💾"] },
+                { id: 2, title: "Images", icons: ["💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿", "💿"] },
+                { id: 3, title: "Security groups", icons: ["🔒", "🔒", "🔒", "🔒", "🔒", "🔒", "🔒", "🔒", "🔒"] },
+                { id: 4, title: "Availability zones", icons: ["🏢", "🏢", "🏢"] },
+                {
+                    id: 5, title: "Fips", icons: ["🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐",
+                        "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐", "🌐"
+                    ]
+                },
+            ]
+
+            const [sectionsState, setSectionsState] = useState(() => {
+                const savedState = localStorage.getItem('sectionsState');
+                return savedState ? JSON.parse(savedState) : initialItems.reduce((acc, item) => {
+                    acc[item.id] = false; // default closed
+                    return acc;
+                }, {});
+            });
+
+            const [items, setItems] = useState(() => {
+                const savedOrder = localStorage.getItem('menuOrder');
+                if (savedOrder) {
+                    const order = JSON.parse(savedOrder);
+                    return order.map(id => initialItems.find(item => item.id === id));
+                }
+                return initialItems;
+            });
+
+            useEffect(() => {
+                if (typeof Driver === "undefined") return;
+
+                const tourCompleted = localStorage.getItem("tourCompleted");
+
+                if (!tourCompleted) {
+                    const driver = new Driver();
+                    driver.defineSteps([
+                        {
+                            element: "#left-bar",
+                            popover: {
+                                title: "Crear recursos nuevos",
+                                description: "Desde aquí podrás crear tus recursos nuevos.",
+                                position: "right"
+                            }
+                        },
+                        {
+                            element: "#drop-area",
+                            popover: {
+                                title: "Estado de la red",
+                                description: "Aquí podrás ver el estado actual de tu red desplegada.",
+                                position: "top-center"
+                            }
+                        },
+                        {
+                            element: ".toggle-button",
+                            popover: {
+                                title: "Ver recursos ya creados",
+                                description: "Pulsando este botón podrás ver los recursos creados adicionales a la topología.",
+                                position: "left"
+                            }
+                        }
+                    ]);
+
+                    driver.start();
+                    localStorage.setItem("tourCompleted", "true");
+                }
+            }, []);
+
+            useEffect(() => {
+                const container = document.getElementById("accordion-list");
+                if (container) {
+                    const sortable = new Sortable(container, {
+                        animation: 150,
+                        onStart: (evt) => {
+                            if (evt.originalEvent.target.classList.contains("icon")) {
+                                sortable.option("disabled", true);
+                            }
+                        },
+                        onEnd: (evt) => {
+                            sortable.option("disabled", false);
+                            setItems((prevItems) => {
+                                const newItems = [...prevItems];
+                                const [movedItem] = newItems.splice(evt.oldIndex, 1);
+                                newItems.splice(evt.newIndex, 0, movedItem);
+                                const newOrder = newItems.map(item => item.id);
+                                localStorage.setItem('menuOrder', JSON.stringify(newOrder));
+                                return newItems;
+                            });
+                        }
+                    });
+                }
+            }, []);
+
+
+            useEffect(() => {
+                // save the menu open/closed state to localStorage
+                localStorage.setItem('menuOpen', JSON.stringify(isOpen));
+            }, [isOpen]);
+
+            useEffect(() => {
+                // save the open/closed state of each section to localStorage
+                localStorage.setItem('sectionsState', JSON.stringify(sectionsState));
+            }, [sectionsState]);
+
+            const toggleSection = (id) => {
+                setSectionsState(prevState => {
+                    const newState = { ...prevState, [id]: !prevState[id] };
+                    return newState;
+                });
+            };
+
+            const handleDragStart = (e, icon) => {
+                e.dataTransfer.setData("icon", icon);
+            };
+
+            const handleDrop = (e) => {
+                const icon = e.dataTransfer.getData("icon");
+                console.log("Dropped icon: ", icon); // handle the dragged icon here
+                e.preventDefault();
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault(); // required to allow the drop
+            };
+
+            return React.createElement(React.Fragment, null,
+                React.createElement("div", {
+                    className: "toggle-button",
+                    onClick: () => setIsOpen(!isOpen),
+                    style: { right: isOpen ? "270px" : "10px" }
+                }, isOpen ? "→" : "←"),
+                React.createElement("div", { id: "menu-container", style: { right: isOpen ? "0" : "-260px" } },
+                    React.createElement("div", { id: "accordion-list" },
+                        items.map((item) => React.createElement("div", { key: item.id, className: "accordion-item" },
+                            React.createElement("div", {
+                                className: "accordion-header",
+                                onClick: () => toggleSection(item.id)
+                            }, item.title),
+                            React.createElement("div", {
+                                className: "accordion-content",
+                                style: { display: sectionsState[item.id] ? "block" : "none" }
+                            },
+                                item.icons.map((icon, idx) => React.createElement("span", {
+                                    key: idx,
+                                    className: "icon",
+                                    draggable: true,
+                                    onDragStart: (e) => handleDragStart(e, icon)
+                                }, icon))
+                            )
+                        ))
+                    )
+                ),
+                React.createElement("div", {
+                    id: "drop-area",
+                    onDrop: handleDrop,
+                    onDragOver: handleDragOver
+                }),
+                React.createElement("div", { id: "left-bar" },
+                    iconsLeftBar.map((icon, index) =>
+                        React.createElement("span", {
+                            key: index,
+                            className: "icon",
+                            draggable: true,
+                            onDragStart: (e) => handleDragStart(e, icon)
+                        }, icon)
+                    )
+                )
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Menu));
+    </script>
+</body>
+
+</html>
